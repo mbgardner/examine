@@ -3,10 +3,13 @@ defmodule Examine do
   Examine helps with debugging by presenting contextual information around a `IO.inspect/1`.
   """
 
+  @enabled_envs Application.get_env(:examine, :environments, [:dev])
+  @default_color Application.get_env(:examine, :color, :white)
+  @default_bg_color Application.get_env(:examine, :bg_color, :cyan)
+
   @doc """
-  Prints the first argument, calling `IO.inspect/2`, while also providing default and optional
-  context. By default, it will display both the line of code and the filename and file line. If
-  called in a pipeline, it will display all of the preceding lines to the start of the pipeline.
+  Displays additional context around `IO.inspect/2`, with options to increase the context
+  and capture pipeline results.
 
   Options:
 
@@ -25,91 +28,51 @@ defmodule Examine do
 
     * `:inspect_pipeline` - Optional. Inspect the returned values for each preceding step of
       the pipeline.
-
-  ## Examples
-      > x = 7
-      > x |> Dbg.inspect()
-
-      ./dbg.ex:16
-      x # => 7
-      > {x, y} = {5, 7}
-      > Dbg.inspect(x+y)
-      ./dbg.ex:22
-      x + y # => 12
-  See more examples in tests.
   """
-
-  defp aaa(ast, count \\ 0)
-
-  defp aaa({a, b, []}, _) do
-    IO.puts "B"
-    {a, b, []}
-  end
-
-  defp aaa([args], _) when not is_tuple(args) do
-    IO.puts "D"
-    [args]
-  end
-
-  defp aaa({_, _, [head | _]} = ast, _) when not is_tuple(head) do
-    IO.puts "A"
-    ast
-  end
-
-  defp aaa({a, b, args}, count) when count == 0 do
-    IO.puts "C"
-    {a, b, aaa(args, count + 1)}
-  end
-
-  defp aaa([{a, [line: line] = b, args}], count) when count > 0 do
-    IO.puts "in here"
-    [{
-      {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :bind_line_var]},
-      [],
-      [{a, b, aaa(args, count + 1)}, line]
-    }]
-  end
-
-
   defmacro inspect(ast, opts \\ []) do
-    original_code = try_get_original_code(__CALLER__, ast)
-    inspect(Mix.env(), ast, [{:original_code, original_code} | opts])
+    if Mix.env() in @enabled_envs do
+      validate_opts(opts)
+      original_code = try_get_original_code(__CALLER__, ast)
+      do_inspect(ast, [{:original_code, original_code} | opts])
+    else
+      ast
+    end
   end
 
-  @enabled_envs Application.get_env(:examine, :environments, [:dev, :test])
-  @default_color Application.get_env(:examine, :color, :white)
-  @default_bg_color Application.get_env(:examine, :bg_color, :cyan)
-
-  defp inspect(env, ast, _opts) when env not in @enabled_envs, do: ast
-
-  defp inspect(_env, ast, opts) do
+  defp do_inspect(ast, opts) do
     value_representation = opts[:original_code] || generate_value_representation(ast)
-    ast = aaa(ast) |> IO.inspect(label: "aaa result")
+
+    ast =
+      if opts[:inspect_pipeline] do
+        inspect_pipeline(ast)
+      else
+        ast
+      end
 
     quote do
-      require Examine
-
       result = unquote(ast)
       color = unquote(opts)[:color] || unquote(@default_color)
       bg_color = unquote(opts)[:bg_color] || unquote(@default_bg_color)
 
-
       value_representation =
-      if unquote(opts[:original_code]) do
+        if unquote(opts[:original_code]) do
           unquote(value_representation)
-        |> Enum.map(fn {s, l} ->
-          case Keyword.fetch(Kernel.binding(:examine_vars), "_examine_line_#{l + 1}" |> String.to_atom()) do
-            {:ok, val} ->
-              "#{s} #=> #{inspect(val)}"
+          |> Enum.map(fn {s, l} ->
+            case Keyword.fetch(
+                   Kernel.binding(:examine_vars),
+                   "_examine_line_#{l + 1}" |> String.to_atom()
+                 ) do
+              {:ok, val} ->
+                "#{s} #=> #{inspect(val)}"
 
-            _ ->
-              s
-          end
-        end)
-        |> Enum.join("\n")
-      else
-        unquote(value_representation)
-      end
+              _ ->
+                s
+            end
+          end)
+          |> Enum.join("\n")
+        else
+          unquote(value_representation)
+        end
 
       IO.puts(:stderr, [
         apply(IO.ANSI, :"#{color}", []),
@@ -132,16 +95,16 @@ defmodule Examine do
         " #=> ",
         Kernel.inspect(result, Keyword.drop(unquote(opts), [:label])),
         "\x1B[K\n",
-        IO.ANSI.reset(),
-        #var!(examine__262, :blah)
+        IO.ANSI.reset()
       ])
 
       result
     end
   end
 
+  @doc false
   defmacro bind_line_var(val, line \\ 0) do
-    name = Macro.var("_examine_line_#{line}" |> String.to_atom, Examine)
+    name = Macro.var("_examine_line_#{line}" |> String.to_atom(), Examine)
 
     quote do
       var!(unquote(name), :examine_vars) = unquote(val)
@@ -149,6 +112,41 @@ defmodule Examine do
     end
   end
 
+  # inject `bind_line_var/2` into a pipeline to capture the result
+  # of pipeline steps for later display
+  defp inspect_pipeline(ast, count \\ 0)
+
+  defp inspect_pipeline({_, _, []} = ast, _) do
+    ast
+  end
+
+  defp inspect_pipeline([args], _) when not is_tuple(args) do
+    [args]
+  end
+
+  defp inspect_pipeline({_, _, [head | _]} = ast, _) when not is_tuple(head) do
+    ast
+  end
+
+  defp inspect_pipeline({a, b, args}, count) when count == 0 do
+    {a, b, inspect_pipeline(args, count + 1)}
+  end
+
+  defp inspect_pipeline([{a, [line: line] = b, args}], count) when count > 0 do
+    [
+      {
+        {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :bind_line_var]},
+        [],
+        [{a, b, inspect_pipeline(args, count + 1)}, line]
+      }
+    ]
+  end
+
+  defp inspect_pipeline(ast, _) when is_list(ast) do
+    ast
+  end
+
+  @doc false
   def print_vars(vars) do
     vars
     |> Enum.each(fn {var_name, var_value} ->
@@ -156,6 +154,7 @@ defmodule Examine do
     end)
   end
 
+  @doc false
   def short_file_name(file_name) do
     String.replace(file_name, File.cwd!(), ".")
   end
@@ -171,6 +170,7 @@ defmodule Examine do
     "  " <> re
   end
 
+  @doc false
   def label(label) when is_binary(label), do: label <> "\n\n"
   def label(_), do: "\n"
 
@@ -191,12 +191,14 @@ defmodule Examine do
          call_line <- String.trim(call_line),
          # call line should starts with "|>"
          true <- String.starts_with?(call_line, "|>") do
-          # if the first line starts with a pipe then display the arg passed in on the previous line
-          start_line = if Enum.at(lines, line_min - 1) |> String.trim |> String.starts_with?("|>") do
-            line_min - 2
-          else
-            line_min - 1
-          end
+      # if the first line starts with a pipe then display the arg passed in on the previous line
+      start_line =
+        if Enum.at(lines, line_min - 1) |> String.trim() |> String.starts_with?("|>") do
+          line_min - 2
+        else
+          line_min - 1
+        end
+
       lines
       |> Enum.slice(start_line..(line_max - 1))
       |> adjust_indent()
@@ -235,30 +237,30 @@ defmodule Examine do
 
     range
   end
-end
 
-defmodule Test do
-  require Examine
+  # raise if options aren't valid
+  defp validate_opts(opts) do
+    with {:color, true} <-
+           {:color,
+            Kernel.function_exported?(IO.ANSI, :"#{Keyword.get(opts, :color, @default_color)}", 0)},
+         {:bg_color, true} <-
+           {:bg_color,
+            Kernel.function_exported?(
+              IO.ANSI,
+              :"#{Keyword.get(opts, :bg_color, @default_bg_color)}",
+              0
+            )} do
+      :ok
+    else
+      {:color, _} ->
+        raise "expected a valid IO.ANSI color matching a [color]/0 function, got #{
+                Kernel.inspect(opts[:color])
+              }"
 
-  def foo do
-    "foo"
-    |> String.capitalize()
-    |> String.upcase()
-    |> String.downcase()
-    |> Examine.inspect(inspect_pipeline: true, show_vars: true)
-  end
-
-  def foo2 do
-    1 + 2 |> Examine.inspect()
-  end
-
-  def foo3 do
-    "foo3" |> String.upcase() |> String.downcase() |> Examine.inspect()
-  end
-
-  def foo4 do
-    "foo4"
-    |> String.upcase()
-    |> Examine.inspect()
+      {:bg_color, _} ->
+        raise "expected a valid IO.ANSI color matching a [color]_background/0 function, got #{
+                Kernel.inspect(opts[:bg_color])
+              }"
+    end
   end
 end
