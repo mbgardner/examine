@@ -154,6 +154,24 @@ defmodule ExamineTest do
            ]
   end
 
+  test "inspect of an expression with more complex result and inspect_pipeline on" do
+    fun = fn ->
+      list = [1, 2, 3]
+
+      list
+      |> Enum.map(&{&1, to_string(&1 * &1)})
+      |> Enum.into(%{})
+      |> Examine.inspect(inspect_pipeline: true)
+    end
+
+    assert capture_inspect(fun) == [
+             "./test/examine_test.exs:164",
+             "  list",
+             "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
+             "  |> Enum.into(%{}) #=> %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+           ]
+  end
+
   test "inspect with inspect_pipeline on and initial arg above as expression" do
     fun = fn ->
       x = 7
@@ -165,7 +183,7 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:164",
+             "./test/examine_test.exs:182",
              "  (x + 5) #=> 12",
              "  |> to_string #=> \"12\"",
              "  |> String.to_integer() #=> 12"

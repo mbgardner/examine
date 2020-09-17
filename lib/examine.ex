@@ -41,15 +41,17 @@ defmodule Examine do
 
   defp do_inspect(ast, opts) do
     value_representation = opts[:original_code] || generate_value_representation(ast)
+    IO.inspect(ast)
 
     ast =
       if opts[:inspect_pipeline] do
         inspect_pipeline(ast)
+        |> IO.inspect()
       else
         ast
       end
 
-    quote do
+    quote location: :keep do
       result = unquote(ast)
       color = unquote(opts)[:color] || unquote(@default_color)
       bg_color = unquote(opts)[:bg_color] || unquote(@default_bg_color)
@@ -60,10 +62,10 @@ defmodule Examine do
           |> Enum.map(fn {s, l} ->
             case Keyword.fetch(
                    Kernel.binding(:examine_vars),
-                   "_examine_line_#{l + 1}" |> String.to_atom()
+                   "_examine_result_line_#{l + 1}" |> String.to_atom()
                  ) do
-              {:ok, val} ->
-                "#{s} #=> #{inspect(val)}"
+              {:ok, result} ->
+                "#{s} #=> #{inspect(result)}"
 
               _ ->
                 s
@@ -104,11 +106,24 @@ defmodule Examine do
 
   @doc false
   defmacro bind_line_var(val, line \\ 0) do
-    name = Macro.var("_examine_line_#{line}" |> String.to_atom(), Examine)
+    name = Macro.var("_examine_result_line_#{line}" |> String.to_atom(), Examine)
 
     quote do
       var!(unquote(name), :examine_vars) = unquote(val)
       unquote(val)
+    end
+  end
+
+  defmacro _examine_capture_step(ast, line \\ 0) do
+    result = Macro.var("_examine_result_line_#{line}" |> String.to_atom(), Examine)
+    duration = Macro.var("_examine_duration_line_#{line}" |> String.to_atom(), Examine)
+
+    quote do
+      {var!(unquote(duration), :examine_vars), var!(unquote(result), :examine_vars)} =
+        :timer.tc(unquote(ast))
+
+      # var!(unquote(name), :examine_vars) = unquote(val)
+      unquote(result)
     end
   end
 
@@ -117,22 +132,35 @@ defmodule Examine do
   defp inspect_pipeline(ast, count \\ 0)
 
   defp inspect_pipeline({_, _, []} = ast, _) do
+    IO.puts("A")
+    ast
+  end
+
+  defp inspect_pipeline(nil = ast, _) do
+    IO.puts("AA")
     ast
   end
 
   defp inspect_pipeline([args], _) when not is_tuple(args) do
+    IO.puts("B")
     [args]
   end
 
   defp inspect_pipeline({_, _, [head | _]} = ast, _) when not is_tuple(head) do
+    IO.puts("C")
+
     ast
   end
 
   defp inspect_pipeline({a, b, args}, count) when count == 0 do
+    IO.puts("D")
+
     {a, b, inspect_pipeline(args, count + 1)}
   end
 
   defp inspect_pipeline([{a, [line: line] = b, args}], count) when count > 0 do
+    IO.puts("E")
+
     [
       {
         {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :bind_line_var]},
@@ -142,7 +170,27 @@ defmodule Examine do
     ]
   end
 
-  defp inspect_pipeline(ast, _) when is_list(ast) do
+  defp inspect_pipeline([{_, [line: line], x} = head | tail] = ast, count)
+       when count > 0 and not is_nil(x) do
+    IO.puts("F")
+    IO.inspect(ast)
+    IO.inspect(head, label: "head")
+
+    [
+      {
+        {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :bind_line_var]},
+        [],
+        [head, line]
+      },
+      tail
+    ]
+    |> List.flatten()
+  end
+
+  defp inspect_pipeline(ast, count) when is_list(ast) do
+    IO.puts("G")
+    IO.inspect(count)
+    IO.inspect(ast)
     ast
   end
 
