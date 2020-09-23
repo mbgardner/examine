@@ -2,6 +2,8 @@
 
 Examine enhances inspection debugging by displaying results alongside code and execution times. When used with pipelines, it can show the results and execution time for each step, along with the overall execution time and the pipeline code.
 
+The `Examine.inspect/2` macro only affects the `:dev` environment by default.
+
 Documentation can be found at [https://hexdocs.pm/examine](https://hexdocs.pm/examine).
 
 ## Installation

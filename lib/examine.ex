@@ -150,8 +150,6 @@ defmodule Examine do
         value_representation,
         result_text,
         duration_text,
-        # " #=> ",
-        # Kernel.inspect(result, Keyword.drop(unquote(opts), [:label])),
         "\x1B[K\n",
         IO.ANSI.reset()
       ])
