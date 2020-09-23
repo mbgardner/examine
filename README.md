@@ -60,3 +60,7 @@ list = [1, 2, 3]
     |> Examine.inspect(inspect_pipeline: true)
 ```
 ![Example 3 Screenshot](examples/images/example_3.png)
+
+## Acknowledgements
+
+https://github.com/romul/dbg_inspect
