@@ -22,7 +22,7 @@ end
 ```elixir
 Examine.inspect(1 + 2)
 ```
-![Example 5 Screenshot](examples/images/example_5.png)
+![Example 1 Screenshot](examples/images/example_1.png)
 
 ### Pipeline and Vars
 ```elixir
@@ -33,7 +33,7 @@ list
 |> Enum.into(%{})
 |> Dbg.inspect(show_vars: true)
 ```
-![Example 1 Screenshot](examples/images/example_1.png)
+![Example 3 Screenshot](examples/images/example_3.png)
 
 ### Inspecting a Pipeline
 ```elixir
@@ -44,7 +44,7 @@ list = [1, 2, 3]
     |> Enum.into(%{})
     |> Examine.inspect(inspect_pipeline: true, show_vars: true)
 ```
-![Example 2 Screenshot](examples/images/example_2.png)
+![Example 4 Screenshot](examples/images/example_4.png)
 
 ### Inspecting a Pipeline with Anonymous Function
 ```elixir
@@ -59,7 +59,7 @@ list = [1, 2, 3]
     |> Enum.into(%{})
     |> Examine.inspect(inspect_pipeline: true)
 ```
-![Example 3 Screenshot](examples/images/example_3.png)
+![Example 5 Screenshot](examples/images/example_5.png)
 
 ## Acknowledgements
 
