@@ -2,6 +2,7 @@ defmodule ExamineTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
   require Examine
+  alias ExamineExamples, as: Examples
 
   test "inspect of a simple var" do
     fun = fn ->
@@ -43,24 +44,6 @@ defmodule ExamineTest do
              "  (x + 5)",
              "  |> to_string",
              "  |> String.to_integer() #=> [#ms] 12"
-           ]
-  end
-
-  test "inspect of a pipeline with more complex result" do
-    fun = fn ->
-      list = [1, 2, 3]
-
-      list
-      |> Enum.map(&{&1, to_string(&1 * &1)})
-      |> Enum.into(%{})
-      |> Examine.inspect()
-    end
-
-    assert capture_inspect(fun) == [
-             "./test/examine_test.exs:#",
-             "  list",
-             "  |> Enum.map(&{&1, to_string(&1 * &1)})",
-             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
            ]
   end
 
@@ -181,6 +164,56 @@ defmodule ExamineTest do
              "  |> to_string #=> [#ms] \"12\"",
              "  |> String.to_integer() #=> [#ms] 12",
              "  Total Duration: #ms"
+           ]
+  end
+
+  test "correctly displays example_1" do
+    fun = fn -> Examples.example_1() end
+
+    assert capture_inspect(fun) == [
+             "./examples/examples.exs:11",
+             "  list = [1, 2, 3]",
+             "  list",
+             "  |> Enum.map(&{&1, to_string(&1 * &1)})",
+             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+           ]
+  end
+
+  test "correctly displays example_2" do
+    fun = fn -> Examples.example_2() end
+
+    assert capture_inspect(fun) == [
+             "./examples/examples.exs:21",
+             "  list = [1, 2, 3]",
+             "  list",
+             "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [#ms] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
+             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}",
+             "  Total Duration: #ms"
+           ]
+  end
+
+  test "correctly displays example_3 with time values" do
+    fun = fn -> Examples.example_3() end
+
+    assert capture_inspect(fun, keep_time: true, keep_total_time: true) == [
+             "./examples/examples.exs:35",
+             "  list",
+             "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [0s] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
+             "  |> (fn val ->",
+             "        :timer.sleep(1000)",
+             "        val",
+             "      end).() #=> [1s] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
+             "  |> Enum.into(%{}) #=> [0s] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}",
+             "  Total Duration: 1s"
+           ]
+  end
+
+  test "correctly displays example_4" do
+    fun = fn -> Examples.example_4() end
+
+    assert capture_inspect(fun) == [
+             "./examples/examples.exs:40",
+             "  String.upcase(\"cat\") #=> [#ms] \"CAT\""
            ]
   end
 

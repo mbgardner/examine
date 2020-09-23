@@ -9,8 +9,8 @@ defmodule Examine do
   @default_time_unit Application.get_env(:examine, :measure_unit, :millisecond)
 
   @doc """
-  Displays additional context around `IO.inspect/2`, with options to increase the context
-  and capture pipeline results.
+  Displays code, its result, and its execution time. If used with the `:inspect_pipeline` option,
+  it will display the results and times for each step in the pipeline preceding the call.
 
   Options:
 
@@ -18,8 +18,7 @@ defmodule Examine do
       the filename. Defaults to `false`.
 
     * `:label` - Optional. Will display a text label on the top line of the block,
-      above the filename. If present, this value is stripped from the opts passed
-      to `IO.inspect/2`.
+      above the filename.
 
     * `:color` - Optional. The text color, which must be one of the `<:color>/0`
       functions in `IO.ANSI`. Defaults to `:white`.
@@ -95,20 +94,6 @@ defmodule Examine do
 
                   duration = System.convert_time_unit(duration, :native, unquote(time_unit))
                   "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
-
-                  #   duration =
-                  #     System.convert_time_unit(
-                  #       duration - prev_duration,
-                  #       :native,
-                  #       unquote(time_unit)
-                  #     )
-
-                  #   "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
-
-                  # _ ->
-                  #   duration = System.convert_time_unit(duration, :native, unquote(time_unit))
-                  #   "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
-                  # end
                 else
                   "#{s} #=> #{inspect(result)}"
                 end

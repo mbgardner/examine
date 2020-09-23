@@ -1,7 +1,8 @@
 defmodule ExamineExamples do
   require Examine
 
-  def show_vars() do
+  # show_vars
+  def example_1 do
     list = [1, 2, 3]
 
     list
@@ -10,16 +11,18 @@ defmodule ExamineExamples do
     |> Examine.inspect(show_vars: true)
   end
 
-  def inspect_pipeline do
+  # show_vars and inspect_pipeline
+  def example_2 do
     list = [1, 2, 3]
 
     list
     |> Enum.map(&{&1, to_string(&1 * &1)})
     |> Enum.into(%{})
-    |> Examine.inspect(inspect_pipeline: true)
+    |> Examine.inspect(inspect_pipeline: true, show_vars: true)
   end
 
-  def pipeline_with_anonymous_func_and_sleep do
+  # pipeline with anonymous function and sleep
+  def example_3 do
     list = [1, 2, 3]
 
     list
@@ -28,15 +31,12 @@ defmodule ExamineExamples do
           :timer.sleep(1000)
           val
         end).()
-    |> (fn val ->
-          :timer.sleep(1000)
-          val
-        end).()
     |> Enum.into(%{})
-    |> Examine.inspect(inspect_pipeline: true)
+    |> Examine.inspect(inspect_pipeline: true, time_unit: :second)
   end
 
-  def inline do
+  # single-line pipeline
+  def example_4 do
     "cat" |> String.upcase() |> Examine.inspect()
   end
 end
