@@ -41,10 +41,10 @@ list
 ```elixir
 list = [1, 2, 3]
 
-    list
-    |> Enum.map(&{&1, to_string(&1 * &1)})
-    |> Enum.into(%{})
-    |> Examine.inspect(inspect_pipeline: true, show_vars: true)
+list
+|> Enum.map(&{&1, to_string(&1 * &1)})
+|> Enum.into(%{})
+|> Examine.inspect(inspect_pipeline: true, show_vars: true)
 ```
 ![Example 4 Screenshot](examples/images/example_4.png)
 
@@ -52,14 +52,14 @@ list = [1, 2, 3]
 ```elixir
 list = [1, 2, 3]
 
-    list
-    |> Enum.map(&{&1, to_string(&1 * &1)})
-    |> (fn val ->
-          :timer.sleep(1000)
-          val
-        end).()
-    |> Enum.into(%{})
-    |> Examine.inspect(inspect_pipeline: true)
+list
+|> Enum.map(&{&1, to_string(&1 * &1)})
+|> (fn val ->
+      :timer.sleep(1000)
+      val
+    end).()
+|> Enum.into(%{})
+|> Examine.inspect(inspect_pipeline: true)
 ```
 ![Example 5 Screenshot](examples/images/example_5.png)
 
