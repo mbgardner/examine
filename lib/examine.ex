@@ -6,6 +6,7 @@ defmodule Examine do
   @enabled_envs Application.get_env(:examine, :environments, [:dev])
   @default_color Application.get_env(:examine, :color, :white)
   @default_bg_color Application.get_env(:examine, :bg_color, :cyan)
+  @default_time_unit Application.get_env(:examine, :measure_unit, :millisecond)
 
   @doc """
   Displays additional context around `IO.inspect/2`, with options to increase the context
@@ -26,8 +27,16 @@ defmodule Examine do
     * `:bg_color` - Optional. The background color, which must be one of the
       `<:bg_color>_background/0` functions in `IO.ANSI`. Defaults to `:cyan`.
 
-    * `:inspect_pipeline` - Optional. Inspect the returned values for each preceding step of
+    * `:inspect_pipeline` - Optional. Inspect the returned values for each preceding step in
       the pipeline.
+
+    * `:measure` - Optional. Measure and display execution time. If used in conjunction with
+      `inspect_pipeline`, it will measure the execution time for each preceding step
+      in the pipeline. If there are multiple execution steps, it will also display the
+      total duration below the code. Defaults to `true`.
+
+    * `:time_unit` - Optional. The time unit used for measuring execution time. The value can
+      be any of the unit options in Elixir's `System.time_unit/0` type. Defaults to `:millisecond`.
   """
   defmacro inspect(ast, opts \\ []) do
     if Mix.env() in @enabled_envs do
@@ -41,31 +50,68 @@ defmodule Examine do
 
   defp do_inspect(ast, opts) do
     value_representation = opts[:original_code] || generate_value_representation(ast)
-    IO.inspect(ast)
 
     ast =
-      if opts[:inspect_pipeline] do
+      if opts[:original_code] && opts[:inspect_pipeline] do
         inspect_pipeline(ast)
-        |> IO.inspect()
       else
         ast
       end
 
+    time_unit = opts[:time_unit] || @default_time_unit
+    time_symbol = time_unit_symbol(time_unit)
+
     quote location: :keep do
+      start_time = System.monotonic_time()
       result = unquote(ast)
+      total_duration = System.monotonic_time() - start_time
+
       color = unquote(opts)[:color] || unquote(@default_color)
       bg_color = unquote(opts)[:bg_color] || unquote(@default_bg_color)
+      measure = Keyword.get(unquote(opts), :measure, true)
 
       value_representation =
         if unquote(opts[:original_code]) do
           unquote(value_representation)
           |> Enum.map(fn {s, l} ->
             case Keyword.fetch(
-                   Kernel.binding(:examine_vars),
+                   Kernel.binding(:examine_results),
                    "_examine_result_line_#{l + 1}" |> String.to_atom()
                  ) do
               {:ok, result} ->
-                "#{s} #=> #{inspect(result)}"
+                if measure do
+                  {:ok, duration} =
+                    Keyword.fetch(
+                      Kernel.binding(:examine_durations),
+                      "_examine_duration_line_#{l + 1}" |> String.to_atom()
+                    )
+
+                  duration =
+                    Examine.get_duration_delta(
+                      Kernel.binding(:examine_durations),
+                      duration,
+                      l + 1
+                    )
+
+                  duration = System.convert_time_unit(duration, :native, unquote(time_unit))
+                  "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
+
+                  #   duration =
+                  #     System.convert_time_unit(
+                  #       duration - prev_duration,
+                  #       :native,
+                  #       unquote(time_unit)
+                  #     )
+
+                  #   "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
+
+                  # _ ->
+                  #   duration = System.convert_time_unit(duration, :native, unquote(time_unit))
+                  #   "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
+                  # end
+                else
+                  "#{s} #=> #{inspect(result)}"
+                end
 
               _ ->
                 s
@@ -74,6 +120,29 @@ defmodule Examine do
           |> Enum.join("\n")
         else
           unquote(value_representation)
+        end
+
+      result_text =
+        if Kernel.binding(:examine_results) |> length > 0 do
+          ""
+        else
+          measure_text =
+            if measure do
+              duration = System.convert_time_unit(total_duration, :native, unquote(time_unit))
+              "[#{duration}#{unquote(time_symbol)}] "
+            else
+              ""
+            end
+
+          " #=> #{measure_text}#{Kernel.inspect(result, Keyword.drop(unquote(opts), [:label]))}"
+        end
+
+      duration_text =
+        if measure && Kernel.binding(:examine_results) |> length() > 1 do
+          duration = System.convert_time_unit(total_duration, :native, unquote(time_unit))
+          "\n\n  Total Duration: #{inspect(duration)}#{unquote(time_symbol)}"
+        else
+          ""
         end
 
       IO.puts(:stderr, [
@@ -94,8 +163,10 @@ defmodule Examine do
       IO.puts(:stderr, [
         "\n",
         value_representation,
-        " #=> ",
-        Kernel.inspect(result, Keyword.drop(unquote(opts), [:label])),
+        result_text,
+        duration_text,
+        # " #=> ",
+        # Kernel.inspect(result, Keyword.drop(unquote(opts), [:label])),
         "\x1B[K\n",
         IO.ANSI.reset()
       ])
@@ -104,25 +175,15 @@ defmodule Examine do
     end
   end
 
-  @doc false
-  defmacro bind_line_var(val, line \\ 0) do
-    name = Macro.var("_examine_result_line_#{line}" |> String.to_atom(), Examine)
-
-    quote do
-      var!(unquote(name), :examine_vars) = unquote(val)
-      unquote(val)
-    end
-  end
-
   defmacro _examine_capture_step(ast, line \\ 0) do
-    result = Macro.var("_examine_result_line_#{line}" |> String.to_atom(), Examine)
-    duration = Macro.var("_examine_duration_line_#{line}" |> String.to_atom(), Examine)
+    result = Macro.var("_examine_result_line_#{line}" |> String.to_atom(), :examine_results)
+    duration = Macro.var("_examine_duration_line_#{line}" |> String.to_atom(), :examine_durations)
 
     quote do
-      {var!(unquote(duration), :examine_vars), var!(unquote(result), :examine_vars)} =
-        :timer.tc(unquote(ast))
+      start = System.monotonic_time()
+      var!(unquote(result), :examine_results) = unquote(ast)
+      var!(unquote(duration), :examine_durations) = System.monotonic_time() - start
 
-      # var!(unquote(name), :examine_vars) = unquote(val)
       unquote(result)
     end
   end
@@ -132,66 +193,75 @@ defmodule Examine do
   defp inspect_pipeline(ast, count \\ 0)
 
   defp inspect_pipeline({_, _, []} = ast, _) do
-    IO.puts("A")
     ast
   end
 
   defp inspect_pipeline(nil = ast, _) do
-    IO.puts("AA")
     ast
   end
 
   defp inspect_pipeline([args], _) when not is_tuple(args) do
-    IO.puts("B")
     [args]
   end
 
   defp inspect_pipeline({_, _, [head | _]} = ast, _) when not is_tuple(head) do
-    IO.puts("C")
-
     ast
   end
 
-  defp inspect_pipeline({a, b, args}, count) when count == 0 do
-    IO.puts("D")
-
-    {a, b, inspect_pipeline(args, count + 1)}
+  defp inspect_pipeline({a, [line: line] = b, args}, count) when count == 0 do
+    {
+      {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :_examine_capture_step]},
+      [],
+      [{a, b, inspect_pipeline(args, count + 1)}, line]
+    }
   end
 
   defp inspect_pipeline([{a, [line: line] = b, args}], count) when count > 0 do
-    IO.puts("E")
-
     [
       {
-        {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :bind_line_var]},
+        {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :_examine_capture_step]},
         [],
         [{a, b, inspect_pipeline(args, count + 1)}, line]
       }
     ]
   end
 
-  defp inspect_pipeline([{_, [line: line], x} = head | tail] = ast, count)
-       when count > 0 and not is_nil(x) do
-    IO.puts("F")
-    IO.inspect(ast)
-    IO.inspect(head, label: "head")
-
+  defp inspect_pipeline([{a, [line: line] = b, args} | tail], count)
+       when count > 0 and not is_nil(args) do
     [
       {
-        {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :bind_line_var]},
+        {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :_examine_capture_step]},
         [],
-        [head, line]
+        [{a, b, inspect_pipeline(args, count + 1)}, line]
       },
       tail
     ]
     |> List.flatten()
   end
 
-  defp inspect_pipeline(ast, count) when is_list(ast) do
-    IO.puts("G")
-    IO.inspect(count)
-    IO.inspect(ast)
+  defp inspect_pipeline(ast, _count) when is_list(ast) do
     ast
+  end
+
+  def get_duration_delta(durations, time, line) do
+    {_, prev_duration} =
+      Enum.map(durations, fn {key, val} ->
+        key =
+          key
+          |> Atom.to_string()
+          |> String.trim_leading("_examine_duration_line_")
+          |> String.to_integer()
+
+        {key, val}
+      end)
+      |> Enum.filter(fn {key, _} -> key < line end)
+      |> Enum.max_by(fn {key, _} -> key end, fn -> {nil, nil} end)
+
+    if prev_duration do
+      time - prev_duration
+    else
+      time
+    end
   end
 
   @doc false
@@ -230,7 +300,7 @@ defmodule Examine do
          when line_min != nil and line_max != nil and line_min < line_max <-
            get_code_line_range(ast),
          # pipeline code should be above the call line
-         true <- line_max < caller.line,
+         true <- line_max <= caller.line,
          # source code should exists
          File.exists?(caller.file),
          {:ok, code} = File.read(caller.file),
@@ -239,6 +309,10 @@ defmodule Examine do
          call_line <- String.trim(call_line),
          # call line should starts with "|>"
          true <- String.starts_with?(call_line, "|>") do
+      # the max line should be at least one less than where `inspect/2` was called --
+      # the AST won't have line numbers for closure syntax like `end` on its own line
+      line_max = max(line_max, caller.line - 1)
+
       # if the first line starts with a pipe then display the arg passed in on the previous line
       start_line =
         if Enum.at(lines, line_min - 1) |> String.trim() |> String.starts_with?("|>") do
@@ -247,10 +321,18 @@ defmodule Examine do
           line_min - 1
         end
 
+      # anonymous functions can lead to the caller line being included
+      end_line =
+        if line_max == caller.line do
+          line_max - 1
+        else
+          line_max
+        end
+
       lines
-      |> Enum.slice(start_line..(line_max - 1))
+      |> Enum.slice(start_line..(end_line - 1))
       |> adjust_indent()
-      |> Enum.zip(start_line..(line_max - 1))
+      |> Enum.zip(start_line..(end_line - 1))
     else
       _ -> nil
     end
@@ -286,18 +368,18 @@ defmodule Examine do
     range
   end
 
+  @time_units [:second, :millisecond, :microsecond, :nanosecond]
+
   # raise if options aren't valid
   defp validate_opts(opts) do
     with {:color, true} <-
            {:color,
-            Kernel.function_exported?(IO.ANSI, :"#{Keyword.get(opts, :color, @default_color)}", 0)},
+            function_exported?(IO.ANSI, :"#{Keyword.get(opts, :color, @default_color)}", 0)},
          {:bg_color, true} <-
            {:bg_color,
-            Kernel.function_exported?(
-              IO.ANSI,
-              :"#{Keyword.get(opts, :bg_color, @default_bg_color)}",
-              0
-            )} do
+            function_exported?(IO.ANSI, :"#{Keyword.get(opts, :bg_color, @default_bg_color)}", 0)},
+         {:time_unit, true} <-
+           {:time_unit, Keyword.get(opts, :time_unit, @default_time_unit) in @time_units} do
       :ok
     else
       {:color, _} ->
@@ -309,6 +391,15 @@ defmodule Examine do
         raise "expected a valid IO.ANSI color matching a [color]_background/0 function, got #{
                 Kernel.inspect(opts[:bg_color])
               }"
+
+      {:time_unit, _} ->
+        raise "expected a time_unit in #{@time_units}, got #{Kernel.inspect(opts[:time_unit])}"
     end
   end
+
+  defp time_unit_symbol(:nanosecond), do: "ns"
+  defp time_unit_symbol(:microsecond), do: "\u00b5s"
+  defp time_unit_symbol(:second), do: "s"
+  # defaults to millisecond
+  defp time_unit_symbol(_), do: "ms"
 end

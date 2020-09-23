@@ -3,15 +3,6 @@ defmodule ExamineTest do
   import ExUnit.CaptureIO
   require Examine
 
-  def capture_inspect(fun) do
-    capture_io(:stderr, fun)
-    |> String.replace("\e[37m\e[46m\e[1m\e[K\n", "")
-    |> String.replace("\e[K\n\e[0m\n", "")
-    |> String.replace("\e[K", "")
-    |> String.split("\n")
-    |> Enum.filter(&(String.length(&1) > 0))
-  end
-
   test "inspect of a simple var" do
     fun = fn ->
       x = 7
@@ -19,8 +10,8 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:18",
-             "  x #=> 7"
+             "./test/examine_test.exs:#",
+             "  x #=> [#ms] 7"
            ]
   end
 
@@ -32,8 +23,8 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:31",
-             "  x + y #=> 12"
+             "./test/examine_test.exs:#",
+             "  x + y #=> [#ms] 12"
            ]
   end
 
@@ -48,10 +39,10 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:47",
+             "./test/examine_test.exs:#",
              "  (x + 5)",
              "  |> to_string",
-             "  |> String.to_integer() #=> 12"
+             "  |> String.to_integer() #=> [#ms] 12"
            ]
   end
 
@@ -66,10 +57,10 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:65",
+             "./test/examine_test.exs:#",
              "  list",
              "  |> Enum.map(&{&1, to_string(&1 * &1)})",
-             "  |> Enum.into(%{}) #=> %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
            ]
   end
 
@@ -84,9 +75,9 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:82",
+             "./test/examine_test.exs:#",
              "  (x + 5)",
-             "  |> to_string #=> \"12\""
+             "  |> to_string #=> [#ms] \"12\""
            ]
   end
 
@@ -98,10 +89,10 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:97",
+             "./test/examine_test.exs:#",
              "  x = 7",
              "  y = 5",
-             "  x + y #=> 12"
+             "  x + y #=> [#ms] 12"
            ]
   end
 
@@ -116,11 +107,11 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:115",
+             "./test/examine_test.exs:#",
              "  list = [1, 2, 3]",
              "  list",
              "  |> Enum.map(&{&1, to_string(&1 * &1)})",
-             "  |> Enum.into(%{}) #=> %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
            ]
   end
 
@@ -131,10 +122,10 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:130",
+             "./test/examine_test.exs:#",
              "  x = 5",
              "  y = 7",
-             "  x |> max(y) #=> 7"
+             "  x |> max(y) #=> [#ms] 7"
            ]
   end
 
@@ -147,10 +138,11 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:146",
+             "./test/examine_test.exs:#",
              "  5",
-             "  |> to_string #=> \"5\"",
-             "  |> String.to_integer() #=> 5"
+             "  |> to_string #=> [#ms] \"5\"",
+             "  |> String.to_integer() #=> [#ms] 5",
+             "  Total Duration: #ms"
            ]
   end
 
@@ -165,10 +157,11 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:164",
+             "./test/examine_test.exs:#",
              "  list",
-             "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
-             "  |> Enum.into(%{}) #=> %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+             "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [#ms] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
+             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}",
+             "  Total Duration: #ms"
            ]
   end
 
@@ -183,10 +176,36 @@ defmodule ExamineTest do
     end
 
     assert capture_inspect(fun) == [
-             "./test/examine_test.exs:182",
-             "  (x + 5) #=> 12",
-             "  |> to_string #=> \"12\"",
-             "  |> String.to_integer() #=> 12"
+             "./test/examine_test.exs:#",
+             "  (x + 5) #=> [#ms] 12",
+             "  |> to_string #=> [#ms] \"12\"",
+             "  |> String.to_integer() #=> [#ms] 12",
+             "  Total Duration: #ms"
            ]
   end
+
+  defp capture_inspect(fun, opts \\ []) do
+    capture_io(:stderr, fun)
+    |> String.replace("\e[37m\e[46m\e[1m\e[K\n", "")
+    |> String.replace("\e[K\n\e[0m\n", "")
+    |> String.replace("\e[K", "")
+    |> keep_line_number(opts[:keep_line_number])
+    |> keep_time(opts[:keep_time])
+    |> keep_total_time(opts[:keep_total_time])
+    |> String.split("\n")
+    |> Enum.filter(&(String.length(&1) > 0))
+  end
+
+  # keep the caller line number
+  defp keep_line_number(str, true), do: str
+
+  defp keep_line_number(str, _),
+    do: String.replace(str, ~r/(examine_test.exs:)(\d+)/, "\\1#")
+
+  # keep the execution time output
+  defp keep_time(str, true), do: str
+  defp keep_time(str, _), do: String.replace(str, ~r/(\[\d+ms\])/, "[#ms]")
+
+  defp keep_total_time(str, true), do: str
+  defp keep_total_time(str, _), do: String.replace(str, ~r/(Total Duration: )(\d+ms)/, "\\1#ms")
 end
