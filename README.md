@@ -33,7 +33,7 @@ list = [1, 2, 3]
 list
 |> Enum.map(&{&1, to_string(&1 * &1)})
 |> Enum.into(%{})
-|> Dbg.inspect(show_vars: true)
+|> Examine.inspect(show_vars: true)
 ```
 ![Example 3 Screenshot](examples/images/example_3.png)
 
