@@ -171,11 +171,8 @@ defmodule ExamineTest do
     fun = fn -> Examples.example_1() end
 
     assert capture_inspect(fun) == [
-             "./examples/examples.exs:11",
-             "  list = [1, 2, 3]",
-             "  list",
-             "  |> Enum.map(&{&1, to_string(&1 * &1)})",
-             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+             "./examples/examples.exs:6",
+             "  1 + 2 #=> [#ms] 3"
            ]
   end
 
@@ -183,7 +180,28 @@ defmodule ExamineTest do
     fun = fn -> Examples.example_2() end
 
     assert capture_inspect(fun) == [
+             "./examples/examples.exs:11",
+             "  String.upcase(\"cat\") #=> [#ms] \"CAT\""
+           ]
+  end
+
+  test "correctly displays example_3" do
+    fun = fn -> Examples.example_3() end
+
+    assert capture_inspect(fun) == [
              "./examples/examples.exs:21",
+             "  list = [1, 2, 3]",
+             "  list",
+             "  |> Enum.map(&{&1, to_string(&1 * &1)})",
+             "  |> Enum.into(%{}) #=> [#ms] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}"
+           ]
+  end
+
+  test "correctly displays example_4" do
+    fun = fn -> Examples.example_4() end
+
+    assert capture_inspect(fun) == [
+             "./examples/examples.exs:31",
              "  list = [1, 2, 3]",
              "  list",
              "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [#ms] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
@@ -192,11 +210,11 @@ defmodule ExamineTest do
            ]
   end
 
-  test "correctly displays example_3 with time values" do
-    fun = fn -> Examples.example_3() end
+  test "correctly displays example_5 with time values" do
+    fun = fn -> Examples.example_5() end
 
     assert capture_inspect(fun, keep_time: true, keep_total_time: true) == [
-             "./examples/examples.exs:35",
+             "./examples/examples.exs:45",
              "  list",
              "  |> Enum.map(&{&1, to_string(&1 * &1)}) #=> [0s] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
              "  |> (fn val ->",
@@ -205,24 +223,6 @@ defmodule ExamineTest do
              "      end).() #=> [1s] [{1, \"1\"}, {2, \"4\"}, {3, \"9\"}]",
              "  |> Enum.into(%{}) #=> [0s] %{1 => \"1\", 2 => \"4\", 3 => \"9\"}",
              "  Total Duration: 1s"
-           ]
-  end
-
-  test "correctly displays example_4" do
-    fun = fn -> Examples.example_4() end
-
-    assert capture_inspect(fun) == [
-             "./examples/examples.exs:40",
-             "  String.upcase(\"cat\") #=> [#ms] \"CAT\""
-           ]
-  end
-
-  test "correctly displays example_5" do
-    fun = fn -> Examples.example_5() end
-
-    assert capture_inspect(fun) == [
-             "./examples/examples.exs:44",
-             "  1 + 2 #=> [#ms] 3"
            ]
   end
 
