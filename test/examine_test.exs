@@ -217,6 +217,15 @@ defmodule ExamineTest do
            ]
   end
 
+  test "correctly displays example_5" do
+    fun = fn -> Examples.example_5() end
+
+    assert capture_inspect(fun) == [
+             "./examples/examples.exs:44",
+             "  1 + 2 #=> [#ms] 3"
+           ]
+  end
+
   defp capture_inspect(fun, opts \\ []) do
     capture_io(:stderr, fun)
     |> String.replace("\e[37m\e[46m\e[1m\e[K\n", "")

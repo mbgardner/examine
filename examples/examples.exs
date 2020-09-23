@@ -39,4 +39,8 @@ defmodule ExamineExamples do
   def example_4 do
     "cat" |> String.upcase() |> Examine.inspect()
   end
+
+  def example_5 do
+    Examine.inspect(1 + 2)
+  end
 end
