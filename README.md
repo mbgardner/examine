@@ -12,7 +12,7 @@ Examine enhances Elixir `IO.inspect` debugging by displaying results alongside c
 * Optionally print a label at the top
 * Global configuration and local options for colors and time units
 
-The `Examine.inspect/2` macro only affects the `:dev` environment by default and will compile to a noop in other environments. The affected environments can be changed via config.
+The `Examine.inspect/2` macro only affects the `:dev` environment by default and will compile to a `noop` in other environments. The affected environments can be changed via config, or per call via the `:ignore_env` option.
 
 Documentation can be found at [https://hexdocs.pm/examine](https://hexdocs.pm/examine).
 
@@ -23,7 +23,7 @@ Add `:examine` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:examine, "~> 0.1.0"}
+    {:examine, "~> 0.2.0"}
   ]
 end
 ```

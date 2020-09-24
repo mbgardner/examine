@@ -8,6 +8,9 @@ defmodule Examine do
     * `:environments` - The environments in which the `Examine.inspect/2` macro will be expanded -- in all
       other environments it will compile to a `noop`. The value is a list of atoms. Defaults to `[:dev]`.
 
+      For an instance of `Examine.inspect/2`, the `:ignore_env` option can be used to expand the macro
+      regardles of the environment.
+
     * `:color` - The foreground color used when printing. It must be a atom value and one of the default
       colors defined in `IO.ANSI`. Defaults to `:white`.
 
@@ -92,9 +95,12 @@ defmodule Examine do
 
     * `:time_unit` - Optional. The time unit used for measuring execution time. The value can
       be any of the unit options in Elixir's `System.time_unit/0` type. Defaults to `:millisecond`.
+
+    * `:ignore_env` - Optional. Ignore the global `:environments` config for this instance so that
+      the macro will be expanded at compile time regardless of the environment. Defaults to `false`.
   """
   defmacro inspect(expression, opts \\ []) do
-    if Mix.env() in @enabled_envs do
+    if Mix.env() in @enabled_envs || Keyword.get(opts, :ignore_env) do
       validate_opts(opts)
       original_code = try_get_original_code(__CALLER__, expression)
       do_inspect(expression, [{:original_code, original_code} | opts])
