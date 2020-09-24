@@ -44,4 +44,23 @@ defmodule ExamineExamples do
     |> Enum.into(%{})
     |> Examine.inspect(inspect_pipeline: true, time_unit: :second)
   end
+
+  def example_6 do
+    start = 1
+    increment = 1
+
+    start
+    |> Kernel.+(increment)
+    |> Kernel.+(increment)
+    |> Kernel.+(increment)
+    |> Kernel.+(increment)
+    |> Examine.inspect(
+      inspect_pipeline: true,
+      color: :yellow,
+      bg_color: :blue,
+      show_vars: true,
+      time_unit: :nanosecond,
+      label: "Setting A Lot of Options"
+    )
+  end
 end

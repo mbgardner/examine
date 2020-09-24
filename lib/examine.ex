@@ -6,7 +6,7 @@ defmodule Examine do
   @enabled_envs Application.get_env(:examine, :environments, [:dev])
   @default_color Application.get_env(:examine, :color, :white)
   @default_bg_color Application.get_env(:examine, :bg_color, :cyan)
-  @default_time_unit Application.get_env(:examine, :measure_unit, :millisecond)
+  @default_time_unit Application.get_env(:examine, :time_unit, :millisecond)
 
   @doc """
   Displays code, its result, and its execution time. If used with the `:inspect_pipeline` option,
@@ -29,7 +29,7 @@ defmodule Examine do
     * `:inspect_pipeline` - Optional. Inspect the returned values for each preceding step in
       the pipeline.
 
-    * `:measure` - Optional. Measure and display execution time. If used in conjunction with
+    * `:measure` - Optional. Display execution time. If used in conjunction with
       `inspect_pipeline`, it will measure the execution time for each preceding step
       in the pipeline. If there are multiple execution steps, it will also display the
       total duration below the code. Defaults to `true`.
