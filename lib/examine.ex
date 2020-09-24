@@ -1,6 +1,31 @@
 defmodule Examine do
   @moduledoc """
-  Examine helps with debugging by presenting contextual information around a `IO.inspect/1`.
+  Examine enhances inspect debugging by printing additional compile-time and runtime information,
+  include file code and execution times.
+
+  Global configuration:
+
+    * `:environments` - The environments in which the `Examine.inspect/2` macro will be expanded -- in all
+      other environments it will compile to a `noop`. The value is a list of atoms. Defaults to `[:dev]`.
+
+    * `:color` - The foreground color used when printing. It must be a atom value and one of the default
+      colors defined in `IO.ANSI`. Defaults to `:white`.
+
+    * `:bg_color` - The background color used when printing. It must be a atom value and one of the default
+      colors defined in `IO.ANSI`. Defaults to `:cyan`.
+
+    * `:time_unit` - The time unit used for measuring execution time. It must be one of units defined in
+      the `System.time_unit/0` type. Defaults to `:millisecond`.
+
+    Local option value for `:color`, `:bg_color`, and `:time_unit` will override global config.
+
+    Example configuration in a config.exs file:
+
+      config :examine,
+        environments: [:dev, :staging],
+        color: :yellow,
+        bg_color: :black,
+        time_unit: :second
   """
 
   @enabled_envs Application.get_env(:examine, :environments, [:dev])
@@ -9,8 +34,8 @@ defmodule Examine do
   @default_time_unit Application.get_env(:examine, :time_unit, :millisecond)
 
   @doc """
-  Displays code, its result, and its execution time. If used with the `:inspect_pipeline` option,
-  it will display the results and times for each step in the pipeline preceding the call.
+  Prints code representation, its result, and its execution time. If used with the `:inspect_pipeline` option,
+  it will print the results and times next to the file code, for each step in the pipeline preceding the call.
 
   Options:
 
