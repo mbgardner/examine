@@ -37,6 +37,42 @@ defmodule Examine do
   Prints code representation, its result, and its execution time. If used with the `:inspect_pipeline` option,
   it will print the results and times next to the file code, for each step in the pipeline preceding the call.
 
+  Examples:
+
+    > Examine.inspect(1 + 2)
+    iex:1
+
+      1 + 2 #=> [0ms] 3
+
+
+    In a file:
+
+    ```elixir
+    start = 1
+    increment = 1
+
+    start
+    |> Kernel.+(increment)
+    |> Kernel.+(increment)
+    |> Examine.inspect(inspect_pipeline: true, show_vars: true)
+    ```
+
+    Prints:
+
+    ```
+
+    ./file_name.ex:10
+      increment = 1
+      start = 1
+
+      start
+      |> Kernel.+(increment) #=> [0ms] 2
+      |> Kernel.+(increment) #=> [0ms] 3
+
+      Total Duration: 0ms
+
+    ```
+
   Options:
 
     * `:show_vars` - Optional. Prints the bindings for the given context below
@@ -62,13 +98,13 @@ defmodule Examine do
     * `:time_unit` - Optional. The time unit used for measuring execution time. The value can
       be any of the unit options in Elixir's `System.time_unit/0` type. Defaults to `:millisecond`.
   """
-  defmacro inspect(ast, opts \\ []) do
+  defmacro inspect(expression, opts \\ []) do
     if Mix.env() in @enabled_envs do
       validate_opts(opts)
-      original_code = try_get_original_code(__CALLER__, ast)
-      do_inspect(ast, [{:original_code, original_code} | opts])
+      original_code = try_get_original_code(__CALLER__, expression)
+      do_inspect(expression, [{:original_code, original_code} | opts])
     else
-      ast
+      expression
     end
   end
 
