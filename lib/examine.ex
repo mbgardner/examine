@@ -39,11 +39,15 @@ defmodule Examine do
 
   Examples:
 
+    ```
+    > require Examine
     > Examine.inspect(1 + 2)
-    iex:1
+
+    iex:2
 
       1 + 2 #=> [0ms] 3
 
+    ```
 
     In a file:
 
