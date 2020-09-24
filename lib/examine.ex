@@ -183,6 +183,7 @@ defmodule Examine do
     end
   end
 
+  @doc false
   defmacro _examine_capture_step(ast, line \\ 0) do
     result = Macro.var("_examine_result_line_#{line}" |> String.to_atom(), :examine_results)
     duration = Macro.var("_examine_duration_line_#{line}" |> String.to_atom(), :examine_durations)
@@ -251,6 +252,7 @@ defmodule Examine do
     ast
   end
 
+  @doc false
   def get_duration_delta(durations, time, line) do
     {_, prev_duration} =
       Enum.map(durations, fn {key, val} ->
