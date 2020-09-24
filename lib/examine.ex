@@ -39,43 +39,34 @@ defmodule Examine do
 
   Examples:
 
-    ```
-    > require Examine
-    > Examine.inspect(1 + 2)
+      > require Examine
+      > Examine.inspect(1 + 2)
 
-    iex:2
+      iex:2
 
-      1 + 2 #=> [0ms] 3
-
-    ```
+        1 + 2 #=> [0ms] 3
 
     In a file:
 
-    ```elixir
-    start = 1
-    increment = 1
+      start = 1
+      increment = 1
 
-    start
-    |> Kernel.+(increment)
-    |> Kernel.+(increment)
-    |> Examine.inspect(inspect_pipeline: true, show_vars: true)
-    ```
+      start
+      |> Kernel.+(increment)
+      |> Kernel.+(increment)
+      |> Examine.inspect(inspect_pipeline: true, show_vars: true)
 
     Prints:
 
-    ```
+      ./file_name.ex:10
+        increment = 1
+        start = 1
 
-    ./file_name.ex:10
-      increment = 1
-      start = 1
+        start
+        |> Kernel.+(increment) #=> [0ms] 2
+        |> Kernel.+(increment) #=> [0ms] 3
 
-      start
-      |> Kernel.+(increment) #=> [0ms] 2
-      |> Kernel.+(increment) #=> [0ms] 3
-
-      Total Duration: 0ms
-
-    ```
+        Total Duration: 0ms
 
   Options:
 
