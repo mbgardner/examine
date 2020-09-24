@@ -10,7 +10,7 @@ Examine enhances Elixir `IO.inspect` debugging by displaying results alongside c
 * Prints filename and line number from where `Examine.inspect/2` was called
 * Option to print all the variables within the context where `Examine.inspect/2` was called
 * Optionally print a label at the top
-* Global and local configuration for colors and time unit
+* Global configuration and local options for colors and time units
 
 The `Examine.inspect/2` macro only affects the `:dev` environment by default and will compile to a noop in other environments. The affected environments can be changed via config.
 
