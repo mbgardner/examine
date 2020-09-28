@@ -2,7 +2,7 @@
 
 Examine enhances Elixir `IO.inspect` debugging by displaying results alongside code and execution times.
 
-## Additional Features
+## Features
 * Prints representation of expression passed as the first argument
 * For pipelines, prints file code
 * Prints results and execution times for each step in a pipeline
