@@ -8,9 +8,9 @@ defmodule Examine.MixProject do
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      docs: docs(),
       package: package(),
-      description: "Enhanced inspect debugging.",
-      source_url: "https://github.com/mbgardner/examine"
+      description: "Enhanced inspect debugging."
     ]
   end
 
@@ -23,6 +23,13 @@ defmodule Examine.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "Examine",
+      source_url: "https://github.com/mbgardner/examine"
     ]
   end
 
