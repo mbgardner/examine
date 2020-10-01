@@ -98,6 +98,9 @@ defmodule Examine do
 
     * `:ignore_env` - Optional. Ignore the global `:environments` config for this instance so that
       the macro will be expanded at compile time regardless of the environment. Defaults to `false`.
+
+    * `:io_inspect` - Pass in `IO.inspect/2` options as a keyword list and they will be passed
+      through to inspected results.
   """
   defmacro inspect(expression, opts \\ []) do
     if Mix.env() in @enabled_envs || Keyword.get(opts, :ignore_env) do
@@ -121,6 +124,7 @@ defmodule Examine do
 
     time_unit = opts[:time_unit] || @default_time_unit
     time_symbol = time_unit_symbol(time_unit)
+    io_inspect_opts = Keyword.get(opts, :io_inspect, [])
 
     quote location: :keep do
       start_time = System.monotonic_time()
@@ -155,9 +159,12 @@ defmodule Examine do
                     )
 
                   duration = System.convert_time_unit(duration, :native, unquote(time_unit))
-                  "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{inspect(result)}"
+
+                  "#{s} #=> [#{inspect(duration)}#{unquote(time_symbol)}] #{
+                    inspect(result, unquote(io_inspect_opts))
+                  }"
                 else
-                  "#{s} #=> #{inspect(result)}"
+                  "#{s} #=> #{inspect(result, unquote(io_inspect_opts))}"
                 end
 
               _ ->
@@ -181,7 +188,7 @@ defmodule Examine do
               ""
             end
 
-          " #=> #{measure_text}#{Kernel.inspect(result, Keyword.drop(unquote(opts), [:label]))}"
+          " #=> #{measure_text}#{Kernel.inspect(result, unquote(io_inspect_opts))}"
         end
 
       duration_text =
@@ -279,10 +286,9 @@ defmodule Examine do
         {:., [], [{:__aliases__, [counter: {Examine, 2}], [:Examine]}, :_examine_capture_step]},
         [],
         [{a, b, inspect_pipeline(args, count + 1)}, line]
-      },
-      tail
+      }
     ]
-    |> List.flatten()
+    |> Enum.concat(tail)
   end
 
   defp inspect_pipeline(ast, _count) when is_list(ast) do

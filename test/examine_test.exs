@@ -226,6 +226,40 @@ defmodule ExamineTest do
            ]
   end
 
+  test "passes io_inspect opts to IO.Inspect/2" do
+    fun = fn ->
+      list = [1, 2, 3, 4, 5]
+
+      Examine.inspect(list, io_inspect: [limit: 3])
+    end
+
+    assert capture_inspect(fun) == [
+             "./test/examine_test.exs:#",
+             "  list #=> [#ms] [1, 2, 3, ...]"
+           ]
+  end
+
+  test "passes io_inspect opts to IO.Inspect/2 for each displayed result" do
+    fun = fn ->
+      list = [1]
+
+      list
+      |> Enum.concat([2])
+      |> Enum.concat([3])
+      |> Enum.concat([4])
+      |> Examine.inspect(inspect_pipeline: true, io_inspect: [limit: 3])
+    end
+
+    assert capture_inspect(fun) == [
+             "./test/examine_test.exs:#",
+             "  list",
+             "  |> Enum.concat([2]) #=> [#ms] [1, 2]",
+             "  |> Enum.concat([3]) #=> [#ms] [1, 2, 3]",
+             "  |> Enum.concat([4]) #=> [#ms] [1, 2, 3, ...]",
+             "  Total Duration: #ms"
+           ]
+  end
+
   defp capture_inspect(fun, opts \\ []) do
     capture_io(:stderr, fun)
     |> String.replace("\e[37m\e[46m\e[1m\e[K\n", "")
