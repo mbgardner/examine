@@ -1,6 +1,8 @@
 defmodule Examine.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/mbgardner/examine"
+
   def project do
     [
       app: :examine,
@@ -14,12 +16,10 @@ defmodule Examine.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     []
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
@@ -29,17 +29,16 @@ defmodule Examine.MixProject do
   defp docs do
     [
       main: "Examine",
-      source_url: "https://github.com/mbgardner/examine"
+      source_url: @source_url
     ]
   end
 
   defp package() do
     [
       maintainers: ["Matthew Gardner"],
-      # These are the default files included in the package
       files: ~w(lib .formatter.exs mix.exs README* LICENSE*),
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/mbgardner/examine"}
+      links: %{"GitHub" => @source_url}
     ]
   end
 end

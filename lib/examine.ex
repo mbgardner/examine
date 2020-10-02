@@ -3,7 +3,7 @@ defmodule Examine do
   Examine enhances inspect debugging by printing additional compile-time and runtime information,
   include file code and execution times.
 
-  Global configuration:
+  ## Global configuration
 
     * `:environments` - The environments in which the `Examine.inspect/2` macro will be expanded -- in all
       other environments it will compile to a `noop`. The value is a list of atoms. Defaults to `[:dev]`.
@@ -40,7 +40,7 @@ defmodule Examine do
   Prints code representation, its result, and its execution time. If used with the `:inspect_pipeline` option,
   it will print the results and times next to the file code, for each step in the pipeline preceding the call.
 
-  Examples:
+  ## Examples
 
       > require Examine
       > Examine.inspect(1 + 2)
@@ -71,7 +71,7 @@ defmodule Examine do
 
         Total Duration: 0ms
 
-  Options:
+  ## Options
 
     * `:show_vars` - Optional. Prints the bindings for the given context below
       the filename. Defaults to `false`.
