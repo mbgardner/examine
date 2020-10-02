@@ -1,18 +1,23 @@
 # Examine
 
-Examine enhances Elixir `IO.inspect` debugging by displaying results alongside code and execution times.
+Examine enhances Elixir `IO.inspect` debugging by displaying results alongside
+code and execution times.
 
 ## Features
-* Prints representation of expression passed as the first argument
-* For pipelines, prints file code
-* Prints results and execution times for each step in a pipeline
-* Prints total execution time for a multi-step pipeline
-* Prints filename and line number from where `Examine.inspect/2` was called
-* Option to print all the variables within the context where `Examine.inspect/2` was called
-* Optionally print a label at the top
-* Global configuration and local options for colors and time units
 
-The `Examine.inspect/2` macro only affects the `:dev` environment by default and will compile to a `noop` in other environments. The affected environments can be changed via config, or per call via the `:ignore_env` option.
+  * Prints representation of expression passed as the first argument
+  * For pipelines, prints file code
+  * Prints results and execution times for each step in a pipeline
+  * Prints total execution time for a multi-step pipeline
+  * Prints filename and line number from where `Examine.inspect/2` was called
+  * Option to print all the variables within the context where
+    `Examine.inspect/2` was called
+  * Optionally print a label at the top
+  * Global configuration and local options for colors and time units
+
+The `Examine.inspect/2` macro only affects the `:dev` environment by default
+and will compile to a `noop` in other environments. The affected environments
+can be changed via config, or per call via the `:ignore_env` option.
 
 Documentation can be found at [https://hexdocs.pm/examine](https://hexdocs.pm/examine).
 
@@ -41,6 +46,13 @@ end
 ```
 
 ## Examples
+
+Running the sample examples.
+
+```
+$ iex -S mix run examples/examples.exs
+iex(1)> ExamineExamples.example_1
+```
 
 ### Simple Usage
 ```elixir
